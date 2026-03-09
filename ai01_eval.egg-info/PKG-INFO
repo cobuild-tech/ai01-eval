@@ -1,0 +1,87 @@
+Metadata-Version: 2.4
+Name: ai01-eval
+Version: 0.1.0
+Summary: Benchmark your AI agent / RAG pipeline on the AI01 leaderboard.
+License-Expression: MIT
+Project-URL: Homepage, https://ai01.dev/benchmark
+Project-URL: Repository, https://github.com/cobuildx/ai01-eval
+Project-URL: Bug Tracker, https://github.com/cobuildx/ai01-eval/issues
+Keywords: llm,rag,eval,benchmark,ai,leaderboard
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Testing
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.31.0
+
+# ai01-eval
+
+Benchmark your AI agent or RAG pipeline against the [AI01 leaderboard](https://ai01.dev/benchmark).
+
+## Install
+
+```bash
+pip install ai01-eval
+```
+
+## Quick start
+
+```python
+from ai01_eval import AI01Eval
+
+client = AI01Eval(api_key="your-api-key")
+
+# 1. Browse datasets
+datasets = client.datasets.list()
+
+# 2. Download a dataset
+dataset = client.datasets.get("general-single-topic-v1")
+
+# 3. Run your pipeline
+results = []
+for item in dataset:
+    answer = your_agent.run(item["query"], item.get("context"))
+    results.append({
+        "id":        item["id"],
+        "query":     item["query"],
+        "answer":    answer,
+        "reference": item["reference"],
+    })
+
+# 4. Submit — metrics are computed server-side
+run = client.submit(
+    dataset="general-single-topic-v1",
+    results=results,
+    agent_name="My RAG Agent v1",
+)
+print(run.scores)
+# {'exact_match': 0.71, 'f1': 0.84, 'faithfulness': 0.79}
+print(run.report_url)
+# https://ai01.dev/benchmark?run=a3f2b1c9
+```
+
+## Available datasets
+
+| ID | Description | Queries | Metrics |
+|----|-------------|---------|---------|
+| `general-single-topic-v1` | RAG QA over a single shared corpus | 120 | exact_match, F1, faithfulness |
+| `general-knowledge-v1` | Factual QA, no context | 10 | exact_match, F1, BLEU |
+
+## Metrics
+
+All metrics are computed server-side to ensure fairness:
+
+- **exact_match** — normalised string equality
+- **f1** — token-level F1 overlap
+- **bleu** — unigram BLEU with brevity penalty
+- **faithfulness** — answer grounded in the provided context (placeholder; LLM judge in production)
+
+## License
+
+MIT

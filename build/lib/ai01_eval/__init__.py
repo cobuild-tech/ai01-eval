@@ -3,47 +3,38 @@ ai01-eval — Benchmark your AI agent against the AI01 leaderboard.
 
 Quick start::
 
-    from ai01_eval import AI01Eval, experiment_timer
+    from ai01_eval import AI01Eval
 
     client = AI01Eval(api_key="your-api-key")
 
     # List datasets
-    for ds in client.datasets.list():
-        print(ds["id"], "-", ds["name"])
+    print(client.datasets.list())
 
-    # Download a dataset, time your pipeline, and submit results
-    dataset = client.datasets.get("general-single-topic-v1")
-
+    # Download a dataset and run your pipeline
+    dataset = client.datasets.get("rag-retrieval-v1")
     results = []
-    with experiment_timer() as t:
-        for item in dataset:
-            answer = your_agent.run(item["query"], item.get("context"))
-            results.append({
-                "id":        item["id"],
-                "query":     item["query"],
-                "answer":    answer,
-                "reference": item["reference"],
-            })
+    for item in dataset:
+        answer = your_agent.run(item["query"], item.get("context"))
+        results.append({
+            "id":        item["id"],
+            "query":     item["query"],
+            "answer":    answer,
+            "reference": item["reference"],
+        })
 
     # Submit and get scores
     run = client.submit(
-        dataset="general-single-topic-v1",
+        dataset="rag-retrieval-v1",
         results=results,
         agent_name="My Agent v1",
-        experiment_name="RAG baseline",
-        description="First run with basic chunking",
-        duration_seconds=t["duration_seconds"],
     )
     print(run.scores)
-    print(f"Time taken: {run.duration_seconds:.1f}s")
     print(run.report_url)
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from ai01_eval.datasets import DatasetClient
-from ai01_eval.submit import RunReport, RunsClient, SubmitClient, experiment_timer
+from ai01_eval.submit import RunReport, RunsClient, SubmitClient
 
 _DEFAULT_BASE_URL = "https://api.ai01.dev"
 
@@ -52,7 +43,7 @@ class AI01Eval:
     """
     Main entry point for the ai01-eval package.
 
-    :param api_key: Your AI01 API key (create one at https://ai01.dev after logging in).
+    :param api_key: Your AI01 API key (create one at https://ai01.dev).
     :param base_url: Override the API base URL (useful for local testing).
     """
 
@@ -74,9 +65,6 @@ class AI01Eval:
         results: list[dict],
         agent_name: str,
         submitter: str = "anonymous",
-        experiment_name: Optional[str] = None,
-        description: Optional[str] = None,
-        duration_seconds: Optional[float] = None,
     ) -> RunReport:
         """Shortcut for :meth:`ai01_eval.submit.SubmitClient.submit`."""
         return self._submit_client.submit(
@@ -84,10 +72,7 @@ class AI01Eval:
             results=results,
             agent_name=agent_name,
             submitter=submitter,
-            experiment_name=experiment_name,
-            description=description,
-            duration_seconds=duration_seconds,
         )
 
 
-__all__ = ["AI01Eval", "RunReport", "experiment_timer"]
+__all__ = ["AI01Eval", "RunReport"]

@@ -27,8 +27,8 @@ keywords = ["llm", "rag", "eval", "benchmark", "ai", "leaderboard"]
 
 [project.urls]
 Homepage = "https://ai01.dev/benchmark"
-Repository = "https://github.com/cobuildx/ai01-eval"
-"Bug Tracker" = "https://github.com/cobuildx/ai01-eval/issues"
+Repository = "https://github.com/cobuild-tech/ai01-dev"
+"Bug Tracker" = "https://github.com/cobuild-tech/ai01-dev/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

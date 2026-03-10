@@ -3,11 +3,7 @@ Submission helpers for ai01-eval.
 """
 from __future__ import annotations
 
-import time
-from contextlib import contextmanager
-from datetime import datetime, timezone
-from typing import Any, Generator, Optional
-
+from typing import Any
 import requests
 
 
@@ -27,38 +23,8 @@ class RunReport:
     def report_url(self) -> str:
         return self._data["report_url"]
 
-    @property
-    def duration_seconds(self) -> Optional[float]:
-        return self._data.get("duration_seconds")
-
-    @property
-    def submitted_at(self) -> str:
-        return self._data["submitted_at"]
-
     def __repr__(self) -> str:
-        dur = f" duration={self.duration_seconds:.1f}s" if self.duration_seconds is not None else ""
-        return f"<RunReport id={self.id!r} scores={self.scores}{dur}>"
-
-
-@contextmanager
-def experiment_timer() -> Generator[dict, None, None]:
-    """
-    Context manager that measures how long your agent loop takes.
-
-    Usage::
-
-        with experiment_timer() as t:
-            for item in dataset:
-                results.append(run_agent(item))
-
-        run = client.submit(..., duration_seconds=t["duration_seconds"])
-    """
-    result: dict[str, float] = {}
-    start = time.perf_counter()
-    try:
-        yield result
-    finally:
-        result["duration_seconds"] = time.perf_counter() - start
+        return f"<RunReport id={self.id!r} scores={self.scores}>"
 
 
 class RunsClient:
@@ -79,7 +45,6 @@ class RunsClient:
 class SubmitClient:
     def __init__(self, base_url: str, api_key: str) -> None:
         self._base_url = base_url.rstrip("/")
-        self._api_key = api_key
         self._headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -92,9 +57,6 @@ class SubmitClient:
         results: list[dict[str, Any]],
         agent_name: str,
         submitter: str = "anonymous",
-        experiment_name: Optional[str] = None,
-        description: Optional[str] = None,
-        duration_seconds: Optional[float] = None,
     ) -> RunReport:
         """
         Submit a list of result dicts to the AI01 eval server.
@@ -105,31 +67,14 @@ class SubmitClient:
           - ``answer``    : your agent's answer
           - ``reference`` : the ground-truth answer
 
-        Optional parameters:
-          - ``experiment_name``  : name of this experiment run
-          - ``description``      : notes about this run
-          - ``duration_seconds`` : how long your agent loop took; use the
-                                   ``experiment_timer()`` context manager to
-                                   measure this automatically
-
         Returns a :class:`RunReport` with scores and a URL to the full report.
         """
-        submitted_at = datetime.now(timezone.utc).isoformat()
-        payload: dict[str, Any] = {
+        payload = {
             "dataset": dataset,
             "agent_name": agent_name,
             "results": results,
-            "api_key": self._api_key,
-            "submitted_at": submitted_at,
             "metadata": {"submitter": submitter},
         }
-        if experiment_name is not None:
-            payload["experiment_name"] = experiment_name
-        if description is not None:
-            payload["description"] = description
-        if duration_seconds is not None:
-            payload["duration_seconds"] = duration_seconds
-
         resp = requests.post(
             f"{self._base_url}/submissions",
             json=payload,

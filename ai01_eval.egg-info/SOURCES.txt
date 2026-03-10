@@ -1,3 +1,4 @@
+LICENSE
 README.md
 pyproject.toml
 ai01_eval/__init__.py

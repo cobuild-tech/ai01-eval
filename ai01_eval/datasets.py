@@ -59,8 +59,9 @@ class DatasetClient:
         Download a dataset by ID.
 
         Returns a :class:`Dataset` that you can iterate over.
-        Each item contains at minimum: ``id``, ``query``, ``reference``.
+        Each item contains: ``id``, ``query``.
         RAG datasets also include a ``context`` field.
+        References are kept server-side and used only for metric computation.
         """
         # Fetch metadata
         meta_resp = requests.get(

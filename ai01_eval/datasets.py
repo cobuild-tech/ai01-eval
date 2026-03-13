@@ -79,6 +79,14 @@ class DatasetClient:
             timeout=60,
         )
         items_resp.raise_for_status()
-        items = items_resp.json().get("items", [])
+        items_data = items_resp.json()
+        items = items_data.get("items", [])
+
+        # For RAG datasets the corpus is returned once at the top level.
+        # Inject it into each item so callers can use item["text_corpus"].
+        text_corpus = items_data.get("text_corpus")
+        if text_corpus:
+            for item in items:
+                item["text_corpus"] = text_corpus
 
         return Dataset(meta, items)

@@ -236,16 +236,18 @@ To point the client at a locally running backend instead of the production API:
 ```python
 client = AI01Eval(
     api_key="local-dev",
-    base_url="http://localhost:8000",
+    base_url="http://localhost:8000",  # local backend
 )
 ```
 
 Or via environment variables in your `.env`:
 
 ```bash
-AI01_BASE_URL=http://localhost:8000
+AI01_BASE_URL=http://localhost:8000  # only for local development
 AI01_API_KEY=local-dev
 ```
+
+By default the client connects to `https://api.ai01.dev` — you only need to override `base_url` for local development.
 
 ---
 

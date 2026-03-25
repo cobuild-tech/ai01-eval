@@ -10,8 +10,12 @@ from typing import Any, Generator, Optional
 
 import requests
 
+from ai01_eval.exceptions import raise_for_status
+
 
 class RunReport:
+    """Result of a submitted evaluation run."""
+
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
 
@@ -36,7 +40,11 @@ class RunReport:
         return self._data["submitted_at"]
 
     def __repr__(self) -> str:
-        dur = f" duration={self.duration_seconds:.1f}s" if self.duration_seconds is not None else ""
+        dur = (
+            f" duration={self.duration_seconds:.1f}s"
+            if self.duration_seconds is not None
+            else ""
+        )
         return f"<RunReport id={self.id!r} scores={self.scores}{dur}>"
 
 
@@ -67,12 +75,18 @@ class RunsClient:
         self._headers = {"Authorization": f"Bearer {api_key}"}
 
     def get(self, run_id: str) -> RunReport:
+        """
+        Retrieve a past submission report by run ID.
+
+        :raises AI01NotFoundError: If the run ID does not exist.
+        :raises AI01AuthError: If the API key is invalid.
+        """
         resp = requests.get(
             f"{self._base_url}/submissions/{run_id}",
             headers=self._headers,
             timeout=30,
         )
-        resp.raise_for_status()
+        raise_for_status(resp)
         return RunReport(resp.json())
 
 
@@ -100,20 +114,38 @@ class SubmitClient:
         Submit a list of result dicts to the AI01 eval server.
 
         Each dict must contain:
-          - ``id``        : matches the item id from the dataset
-          - ``query``     : the original query string
-          - ``answer``    : your agent's answer
-          - ``reference`` : the ground-truth answer
 
-        Optional parameters:
-          - ``experiment_name``  : name of this experiment run
-          - ``description``      : notes about this run
-          - ``duration_seconds`` : how long your agent loop took; use the
-                                   ``experiment_timer()`` context manager to
-                                   measure this automatically
+        - ``id``     — matches the item ID from the dataset
+        - ``query``  — the original query string
+        - ``answer`` — your agent's answer
 
-        Returns a :class:`RunReport` with scores and a URL to the full report.
+        Ground-truth references are looked up server-side; you do not need
+        to include a ``reference`` field.
+
+        Optional submit parameters:
+
+        - ``experiment_name``  — label for this experiment run
+        - ``description``      — free-text notes about this run
+        - ``duration_seconds`` — pipeline wall-clock time; use
+          :func:`experiment_timer` to measure this automatically
+
+        :raises ValueError: If *results* is empty or any item is missing
+            a required key.
+        :raises AI01AuthError: If the API key is invalid.
+        :raises AI01RateLimitError: If too many requests are sent.
+        :raises AI01ServerError: For unexpected server errors.
         """
+        if not results:
+            raise ValueError("results must not be empty.")
+
+        required_keys = {"id", "query", "answer"}
+        for i, item in enumerate(results):
+            missing = required_keys - item.keys()
+            if missing:
+                raise ValueError(
+                    f"results[{i}] is missing required keys: {sorted(missing)}"
+                )
+
         submitted_at = datetime.now(timezone.utc).isoformat()
         payload: dict[str, Any] = {
             "dataset": dataset,
@@ -136,5 +168,5 @@ class SubmitClient:
             headers=self._headers,
             timeout=120,
         )
-        resp.raise_for_status()
+        raise_for_status(resp)
         return RunReport(resp.json())

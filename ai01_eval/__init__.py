@@ -19,13 +19,12 @@ Quick start::
         for item in dataset:
             answer = your_agent.run(item["query"], item.get("context"))
             results.append({
-                "id":        item["id"],
-                "query":     item["query"],
-                "answer":    answer,
-                "reference": item["reference"],
+                "id":     item["id"],
+                "query":  item["query"],
+                "answer": answer,
             })
 
-    # Submit and get scores
+    # Submit and get scores — references are looked up server-side
     run = client.submit(
         dataset="general-single-topic-v1",
         results=results,
@@ -37,13 +36,30 @@ Quick start::
     print(run.scores)
     print(f"Time taken: {run.duration_seconds:.1f}s")
     print(run.report_url)
+
+Environment variables
+---------------------
+``AI01_API_KEY``
+    Your experiment API key — used when *api_key* is not passed explicitly.
+``AI01_BASE_URL``
+    Override the API base URL (e.g. ``http://localhost:8000`` for local dev).
 """
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from ai01_eval.datasets import DatasetClient
+from ai01_eval.exceptions import (
+    AI01AuthError,
+    AI01Error,
+    AI01NotFoundError,
+    AI01RateLimitError,
+    AI01ServerError,
+)
 from ai01_eval.submit import RunReport, RunsClient, SubmitClient, experiment_timer
+
+__version__ = "0.2.0"
 
 _DEFAULT_BASE_URL = "https://api.ai01.dev"
 
@@ -52,20 +68,29 @@ class AI01Eval:
     """
     Main entry point for the ai01-eval package.
 
-    :param api_key: Your AI01 API key (create one at https://ai01.dev after logging in).
-    :param base_url: Override the API base URL (useful for local testing).
+    :param api_key: Your AI01 experiment API key. Falls back to the
+        ``AI01_API_KEY`` environment variable when not provided.
+    :param base_url: Override the API base URL. Falls back to
+        ``AI01_BASE_URL``, then ``https://api.ai01.dev``.
+    :raises AI01AuthError: If no API key is found.
     """
 
     def __init__(
         self,
-        api_key: str,
-        base_url: str = _DEFAULT_BASE_URL,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
     ) -> None:
-        self._api_key = api_key
-        self._base_url = base_url
-        self.datasets = DatasetClient(base_url, api_key)
-        self.runs = RunsClient(base_url, api_key)
-        self._submit_client = SubmitClient(base_url, api_key)
+        resolved_key = api_key or os.environ.get("AI01_API_KEY")
+        if not resolved_key:
+            raise AI01AuthError(
+                "api_key is required. Pass it explicitly or set the "
+                "AI01_API_KEY environment variable."
+            )
+        resolved_url = base_url or os.environ.get("AI01_BASE_URL") or _DEFAULT_BASE_URL
+
+        self.datasets = DatasetClient(resolved_url, resolved_key)
+        self.runs = RunsClient(resolved_url, resolved_key)
+        self._submit_client = SubmitClient(resolved_url, resolved_key)
 
     def submit(
         self,
@@ -90,4 +115,15 @@ class AI01Eval:
         )
 
 
-__all__ = ["AI01Eval", "RunReport", "experiment_timer"]
+__all__ = [
+    "AI01Eval",
+    "RunReport",
+    "experiment_timer",
+    "__version__",
+    # exceptions
+    "AI01Error",
+    "AI01AuthError",
+    "AI01NotFoundError",
+    "AI01RateLimitError",
+    "AI01ServerError",
+]

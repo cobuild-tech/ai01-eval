@@ -1,22 +1,29 @@
 """
 Dataset access helpers for ai01-eval.
+
 Downloads dataset items from the AI01 API so users can iterate over them
 and pass each query through their pipeline.
+
+Note: ground-truth references are kept server-side and are never returned
+in the items payload. They are used only for metric computation at
+submission time.
 """
 from __future__ import annotations
 
 from typing import Any, Iterator
+
 import requests
+
+from ai01_eval.exceptions import raise_for_status
 
 
 class Dataset:
-    """A lazily-loaded benchmark dataset."""
+    """A downloaded benchmark dataset, ready to iterate over."""
 
     def __init__(self, data: dict[str, Any], items: list[dict[str, Any]]) -> None:
         self._meta = data
         self._items = items
 
-    # metadata shortcuts
     @property
     def id(self) -> str:
         return self._meta["id"]
@@ -50,8 +57,12 @@ class DatasetClient:
 
     def list(self) -> list[dict[str, Any]]:
         """Return metadata for all available datasets."""
-        resp = requests.get(f"{self._base_url}/datasets", headers=self._headers, timeout=30)
-        resp.raise_for_status()
+        resp = requests.get(
+            f"{self._base_url}/datasets",
+            headers=self._headers,
+            timeout=30,
+        )
+        raise_for_status(resp)
         return resp.json()["datasets"]
 
     def get(self, dataset_id: str) -> Dataset:
@@ -59,26 +70,30 @@ class DatasetClient:
         Download a dataset by ID.
 
         Returns a :class:`Dataset` that you can iterate over.
-        Each item contains: ``id``, ``query``.
-        RAG datasets also include a ``context`` field.
-        References are kept server-side and used only for metric computation.
+        Each item contains ``id`` and ``query``; RAG datasets also include
+        a ``context`` field and a ``text_corpus`` field on the object.
+
+        Ground-truth references are **not** included in items — they are
+        looked up server-side when you submit results.
+
+        :param dataset_id: The dataset ID string (e.g. ``"general-single-topic-v1"``).
+        :raises AI01NotFoundError: If the dataset does not exist.
+        :raises AI01AuthError: If the API key is invalid.
         """
-        # Fetch metadata
         meta_resp = requests.get(
             f"{self._base_url}/datasets/{dataset_id}",
             headers=self._headers,
             timeout=30,
         )
-        meta_resp.raise_for_status()
+        raise_for_status(meta_resp)
         meta = meta_resp.json()
 
-        # Fetch items (paginated endpoint)
         items_resp = requests.get(
             f"{self._base_url}/datasets/{dataset_id}/items",
             headers=self._headers,
             timeout=60,
         )
-        items_resp.raise_for_status()
+        raise_for_status(items_resp)
         items_data = items_resp.json()
         items = items_data.get("items", [])
 

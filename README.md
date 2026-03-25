@@ -8,6 +8,8 @@ Benchmark your AI agent or RAG pipeline against the [AI01 leaderboard](https://a
 pip install ai01-eval
 ```
 
+> Get your API key at [ai01.dev](https://ai01.dev).
+
 ## Quick start
 
 ```python

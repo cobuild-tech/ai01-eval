@@ -51,7 +51,7 @@ print(run.report_url)
 
 ### API key
 
-Pass the key explicitly or set the `AI01_API_KEY` environment variable:
+Log in at [ai01.dev](https://ai01.dev) to get your API key, then pass it explicitly or set the `AI01_API_KEY` environment variable:
 
 ```python
 # Explicit
@@ -62,25 +62,6 @@ client = AI01Eval(api_key="your-api-key")
 client = AI01Eval()
 ```
 
-### Local development
-
-Point the client at a locally running backend:
-
-```python
-client = AI01Eval(
-    api_key="local-dev",
-    base_url="http://localhost:8000",
-)
-```
-
-Or via environment variables:
-
-```bash
-export AI01_API_KEY=local-dev
-export AI01_BASE_URL=http://localhost:8000
-```
-
----
 
 ## API Reference
 
@@ -95,7 +76,6 @@ client = AI01Eval(api_key="...", base_url="https://api.ai01.dev")
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `api_key` | `str` | env `AI01_API_KEY` | Your AI01 API key. Get one at [ai01.dev](https://ai01.dev). |
-| `base_url` | `str` | `"https://api.ai01.dev"` | Override the API base URL. Also reads `AI01_BASE_URL`. |
 
 The client exposes three sub-clients:
 

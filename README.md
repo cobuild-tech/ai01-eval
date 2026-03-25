@@ -11,7 +11,7 @@ pip install ai01-eval
 ## Quick start
 
 ```python
-from ai01_eval import AI01Eval, experiment_timer
+from ai01_eval import AI01Eval
 
 client = AI01Eval(api_key="your-api-key")
 
@@ -23,21 +23,19 @@ dataset = client.datasets.get("general-single-topic-v1")
 
 # 3. Run your pipeline (ground-truth references are looked up server-side)
 results = []
-with experiment_timer() as t:
-    for item in dataset:
-        answer = your_agent.run(item["query"], item.get("context"))
-        results.append({
-            "id":     item["id"],
-            "query":  item["query"],
-            "answer": answer,
-        })
+for item in dataset:
+    answer = your_agent.run(item["query"], item.get("context"))
+    results.append({
+        "id":     item["id"],
+        "query":  item["query"],
+        "answer": answer,
+    })
 
 # 4. Submit — metrics are computed server-side
 run = client.submit(
     dataset="general-single-topic-v1",
     results=results,
     agent_name="My RAG Agent v1",
-    duration_seconds=t["duration_seconds"],
 )
 print(run.scores)
 # {'exact_match': 0.71, 'f1': 0.84, 'faithfulness': 0.79}
@@ -218,19 +216,6 @@ print(run.scores)
 
 **Returns:** `RunReport`
 
----
-
-### `experiment_timer()`
-
-Context manager that measures how long your agent loop takes.
-
-```python
-with experiment_timer() as t:
-    for item in dataset:
-        results.append({"id": item["id"], "query": item["query"], "answer": run_agent(item)})
-
-run = client.submit(..., duration_seconds=t["duration_seconds"])
-```
 
 ---
 

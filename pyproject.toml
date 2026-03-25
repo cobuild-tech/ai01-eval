@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai01-eval"
-version = "0.2.0"
+version = "0.2.1"
 description = "Benchmark your AI agent / RAG pipeline on the AI01 leaderboard."
 readme = "README.md"
 license = "MIT"

@@ -59,7 +59,7 @@ from ai01_eval.exceptions import (
 )
 from ai01_eval.submit import RunReport, RunsClient, SubmitClient, experiment_timer
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 _DEFAULT_BASE_URL = "https://api.ai01.dev"
 
